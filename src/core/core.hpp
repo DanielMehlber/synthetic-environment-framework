@@ -1,4 +1,4 @@
 #pragma once
-#include "data/properties/Property.hpp"
-#include "data/properties/PropertyChangeListener.hpp"
-#include "data/properties/PropertyGroup.hpp"
+#include "properties/Property.hpp"
+#include "properties/PropertyChangeListener.hpp"
+#include "properties/PropertyGroup.hpp"

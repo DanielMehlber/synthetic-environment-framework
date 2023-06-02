@@ -10,20 +10,13 @@ emit::core::data::PropertyGroup::~PropertyGroup() {
     RemoveAllChangeListeners();
 }
 
-std::optional<std::shared_ptr<PropertyBase>>
-PropertyGroup::GetBase(const std::string &prop_id) const {
-    if (/* this group */ Contains(prop_id)) {
-        std::shared_ptr<PropertyBase> base = m_property_map.at(prop_id);
-        return base;
-    } else {
-        return {}; // empty optional
-    }
-}
-
 void emit::core::data::PropertyGroup::Apply() {
+    // TODO: this could be async
     for (auto listener : m_change_listeners) {
-        listener->ApplyProperties(m_id);
+        listener->ApplyProperties(m_id, m_changed_props);
     }
+
+    m_changed_props.clear();
 }
 
 void PropertyGroup::AddChangeListener(PropertyGroupChangeListener *listener) {

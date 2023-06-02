@@ -1,11 +1,13 @@
 #pragma once
 
+#include "../exceptions/EmitException.hpp"
 #include "Property.hpp"
 #include "PropertyChangeListener.hpp"
 #include <algorithm>
 #include <list>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <unordered_map>
 
@@ -44,6 +46,30 @@ class PropertyGroup {
      */
     std::list<PropertyGroupChangeListener *> m_change_listeners;
 
+    /**
+     * @brief this set of property ids remembers all properties that have
+     * changed since the last apply
+     */
+    std::set<std::string> m_changed_props;
+
+    /**
+     * @brief get a property of this group.
+     * @param prop_id id of the wanted property
+     * @return optional containing the property object if prop_id is valid
+     */
+    template <typename T>
+    std::optional<std::shared_ptr<Property<T>>>
+    GetProperty(const std::string &prop_id) const;
+
+    /**
+     * @brief tries to find the property base using the passed id in this group
+     * @param prop_id id of the requested property in this group
+     * @return optionally (if id exists) the property base of the requested
+     * property
+     */
+    inline std::optional<std::shared_ptr<PropertyBase>>
+    GetBase(const std::string &prop_id) const;
+
   public:
     PropertyGroup() = delete;
     PropertyGroup(std::string id, std::string display_name);
@@ -69,15 +95,6 @@ class PropertyGroup {
     template <typename T> void RegisterProperty(Property<T> typed_prop);
 
     /**
-     * @brief tries to find the property base using the passed id in this group
-     * @param prop_id id of the requested property in this group
-     * @return optionally (if id exists) the property base of the requested
-     * property
-     */
-    std::optional<std::shared_ptr<PropertyBase>>
-    GetBase(const std::string &prop_id) const;
-
-    /**
      * @brief checks if this group contains a property with this id
      * @param prop_id id of property
      * @return true, if this contains property with passed id
@@ -93,13 +110,23 @@ class PropertyGroup {
     HasChangeListener(const PropertyGroupChangeListener *listener) const;
 
     /**
-     * @brief get a property of this group.
-     * @param prop_id id of the wanted property
-     * @return optional containing the property object if prop_id is valid
+     * @brief fetches property with id and returns its value directly
+     * @tparam T type of requested property
+     * @param prop_id id of property
+     * @return value of requested property
      */
     template <typename T>
-    std::optional<std::shared_ptr<Property<T>>>
-    Get(const std::string &prop_id) const;
+    inline std::optional<T> Get(const std::string &prop_id) const;
+
+    /**
+     * @brief sets value of property with id directly (if it exists).
+     * @tparam T type of value to be set (must equal property value type)
+     * @param prop_id id of property
+     * @param t value that should be set a new value for property
+     * @throws when
+     */
+    template <typename T>
+    inline void Set(const std::string &prop_id, const T &t);
 
     /**
      * @brief Apply changes of properties by notifying all change listeners of
@@ -126,7 +153,7 @@ void PropertyGroup::RegisterProperty(Property<T> typed_prop) {
 
 template <typename T>
 std::optional<std::shared_ptr<Property<T>>>
-PropertyGroup::Get(const std::string &prop_id) const {
+PropertyGroup::GetProperty(const std::string &prop_id) const {
     auto optional_property_base = GetBase(prop_id);
     if (optional_property_base.has_value()) {
         auto property_base = optional_property_base.value();
@@ -141,6 +168,30 @@ PropertyGroup::Get(const std::string &prop_id) const {
     return {}; /* if the property was not found or has wrong type */
 }
 
+template <typename T>
+inline std::optional<T> PropertyGroup::Get(const std::string &prop_id) const {
+    auto prop = GetProperty<T>(prop_id);
+    if (prop.has_value()) {
+        return prop.value()->GetValue();
+    } else {
+        return {};
+    }
+}
+
+template <typename T>
+inline void PropertyGroup::Set(const std::string &prop_id, const T &t) {
+    auto prop_opt = GetProperty<T>(prop_id);
+    if (prop_opt.has_value()) {
+        auto prop = prop_opt.value();
+        prop->SetValue(t);
+
+        /* remember changed properties */
+        m_changed_props.insert(prop->GetId());
+    } else {
+        throw core::exceptions::EmitException("this property does not exist");
+    }
+}
+
 inline bool PropertyGroup::Contains(const std::string &prop_id) const {
     return m_property_map.find(prop_id) != m_property_map.end();
 }
@@ -149,6 +200,16 @@ inline bool PropertyGroup::HasChangeListener(
     const PropertyGroupChangeListener *listener) const {
     return std::find(m_change_listeners.begin(), m_change_listeners.end(),
                      listener) != m_change_listeners.end();
+}
+
+std::optional<std::shared_ptr<PropertyBase>> inline PropertyGroup::GetBase(
+    const std::string &prop_id) const {
+    if (/* this group */ Contains(prop_id)) {
+        std::shared_ptr<PropertyBase> base = m_property_map.at(prop_id);
+        return base;
+    } else {
+        return {}; // empty optional
+    }
 }
 
 } // namespace emit::core::data

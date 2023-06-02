@@ -10,10 +10,10 @@ typedef boost::error_info<struct tag_function, std::string>
     emit_exception_function;
 
 class EmitException : virtual boost::exception, virtual std::exception {
-  private:
+  protected:
   public:
-    EmitException(/* args */);
-    ~EmitException();
+    EmitException(const std::string &message);
+    virtual ~EmitException(){};
 };
 
 } // namespace emit::core::exceptions

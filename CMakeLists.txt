@@ -10,8 +10,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add your source files here
 set(SOURCES
     "src/main.cpp"
-    "src/core/data/properties/PropertyGroup.cpp"
-    "src/core/data/properties/PropertyChangeListener.cpp"
+    "src/core/properties/PropertyGroup.cpp"
+    "src/core/properties/PropertyChangeListener.cpp"
+    "src/core/exceptions/EmitException.cpp"
 )
 
 # Add an executable target

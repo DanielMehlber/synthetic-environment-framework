@@ -59,6 +59,8 @@ template <typename T> class Property : public PropertyBase {
     // member functions
     inline std::type_info const &GetType() const override { return typeid(T); }
     inline const std::string &GetId() const override { return m_id; }
+    inline T GetValue() const;
+    inline void SetValue(const T &new_value);
 };
 
 template <typename T>
@@ -74,6 +76,14 @@ Property<T>::Property(const Property &other_property)
     // duplicates shared pointer. Both the current and copied properties access
     // the same value
     m_value = other_property.m_value;
+}
+
+template <typename T> inline T Property<T>::GetValue() const {
+    return *m_value.get();
+}
+
+template <typename T> inline void Property<T>::SetValue(const T &new_value) {
+    *(m_value.get()) = new_value;
 }
 
 } // namespace emit::core::data
